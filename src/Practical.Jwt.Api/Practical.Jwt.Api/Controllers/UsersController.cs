@@ -60,7 +60,7 @@ namespace Practical.Jwt.Api.Controllers
             return Ok(new
             {
                 UserName = model.UserName,
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshToken = refreshToken,
                 Expiration = token.ValidTo
             });
@@ -103,7 +103,7 @@ namespace Practical.Jwt.Api.Controllers
             return Ok(new
             {
                 UserName = model.UserName,
-                Token = new JwtSecurityTokenHandler().WriteToken(token),
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshToken = refreshToken,
                 Expiration = token.ValidTo
             });

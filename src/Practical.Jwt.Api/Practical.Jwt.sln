@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31919.166
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Practical.Jwt.Api", "Practical.Jwt.Api\Practical.Jwt.Api.csproj", "{D3D956C3-FDCF-4CEC-A11E-DEA5F363FBCD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Practical.Jwt.Api", "Practical.Jwt.Api\Practical.Jwt.Api.csproj", "{D3D956C3-FDCF-4CEC-A11E-DEA5F363FBCD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Practical.Jwt.Client", "Practical.Jwt.Client\Practical.Jwt.Client.csproj", "{DB8C9D22-1E52-45C8-9144-6805A55F7CED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +17,10 @@ Global
 		{D3D956C3-FDCF-4CEC-A11E-DEA5F363FBCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D3D956C3-FDCF-4CEC-A11E-DEA5F363FBCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D3D956C3-FDCF-4CEC-A11E-DEA5F363FBCD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB8C9D22-1E52-45C8-9144-6805A55F7CED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB8C9D22-1E52-45C8-9144-6805A55F7CED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB8C9D22-1E52-45C8-9144-6805A55F7CED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB8C9D22-1E52-45C8-9144-6805A55F7CED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
