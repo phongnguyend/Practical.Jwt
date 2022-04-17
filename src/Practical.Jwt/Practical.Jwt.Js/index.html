@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="color-scheme" content="light dark" />
+  </head>
+  <body>
+    <input type="button" value="Authenticate" onclick="authenticate()" />
+    <input type="button" value="Refresh Token" onclick="refreshToken()" />
+    <input type="button" value="Get Users" onclick="getUsers()" />
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <script>
+      let tokenInfo;
+      function authenticate() {
+        axios
+          .post("https://localhost:44352/api/users/login", {
+            userName: "test@abc.com",
+            password: "xxx",
+          })
+          .then(function (response) {
+            console.log(response);
+            tokenInfo = response.data;
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      function refreshToken() {
+        axios
+          .post("https://localhost:44352/api/users/refreshToken", {
+            userName: "test@abc.com",
+            refreshToken: tokenInfo.refreshToken,
+          })
+          .then(function (response) {
+            tokenInfo = response.data;
+            console.log(tokenInfo);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+
+      function getUsers() {
+        let config = {
+          headers: {
+            authorization: "Bearer " + tokenInfo.accessToken,
+          },
+        };
+        axios
+          .get("https://localhost:44352/api/users", config)
+          .then(function (response) {
+            console.log(response);
+          })
+          .catch(function (error) {
+            console.log(error);
+          });
+      }
+    </script>
+  </body>
+</html>

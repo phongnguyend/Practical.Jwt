@@ -55,6 +55,11 @@ namespace Practical.Jwt.Api
             app.UseHttpsRedirection();
             app.UseStaticFiles();
 
+            app.UseCors(configurePolicy =>
+            {
+                configurePolicy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            });
+
             app.UseRouting();
 
             app.UseAuthentication();
