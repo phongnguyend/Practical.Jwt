@@ -27,9 +27,39 @@ namespace Practical.Jwt.Api.Controllers
             _configuration = configuration;
         }
 
-        public List<string> Get()
+        [HttpGet]
+        public List<UserModel> Get()
         {
-            return new List<string>() { "abc", "xyz" };
+            return new List<UserModel>()
+            {
+                new UserModel
+                {
+                    Id = "1",
+                },
+                new UserModel
+                {
+                    Id = "2",
+                }
+            };
+        }
+
+        [HttpPost]
+        public UserModel Post(UserModel model)
+        {
+            return model;
+        }
+
+        [HttpPut("{id}")]
+        public UserModel Put(string id, UserModel model)
+        {
+            model.Id = id;
+            return model;
+        }
+
+        [HttpDelete("{id}")]
+        public IActionResult Delete(string id)
+        {
+            return NoContent();
         }
 
         [AllowAnonymous]

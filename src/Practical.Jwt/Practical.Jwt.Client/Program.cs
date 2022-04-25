@@ -15,13 +15,23 @@ namespace Practical.Jwt.Client
                 UserName = "test@abc.com"
             });
 
-            var users = await httpService.GetAsync<List<string>>("https://localhost:44352/api/users", tokenResponse["accessToken"]);
+            var users = await httpService.GetAsync<List<UserModel>>(url: "https://localhost:44352/api/users", accessToken: tokenResponse["accessToken"]);
 
             tokenResponse = await httpService.RefreshToken("https://localhost:44352/api/users/refreshToken", new RefreshTokenRequest
             {
                 UserName = "test@abc.com",
                 RefreshToken = tokenResponse["refreshToken"]
             });
+
+            var user = await httpService.PostAsync<UserModel>(url: "https://localhost:44352/api/users",
+                data: new UserModel { Id = "3" },
+                accessToken: tokenResponse["accessToken"]);
+
+            user = await httpService.PutAsync<UserModel>(url: $"https://localhost:44352/api/users/{user.Id}",
+                data: new UserModel { },
+                accessToken: tokenResponse["accessToken"]);
+
+            await httpService.DeleteAsync(url: $"https://localhost:44352/api/users/{user.Id}", accessToken: tokenResponse["accessToken"]);
         }
     }
 }

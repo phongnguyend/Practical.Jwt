@@ -40,7 +40,7 @@ namespace Practical.Jwt.Client
         {
             await SetBearerToken(accessToken);
 
-            var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
 
             var data = await response.Content.ReadAs<T>();
@@ -51,7 +51,7 @@ namespace Practical.Jwt.Client
         {
             await SetBearerToken(accessToken);
 
-            var request = new HttpRequestMessage(HttpMethod.Post, url);
+            using var request = new HttpRequestMessage(HttpMethod.Post, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             if (data != null)
@@ -59,7 +59,7 @@ namespace Practical.Jwt.Client
                 request.Content = data.AsJsonContent();
             }
 
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
             var createdObject = await response.Content.ReadAs<T>();
             return createdObject;
@@ -69,12 +69,12 @@ namespace Practical.Jwt.Client
         {
             await SetBearerToken(accessToken);
 
-            var request = new HttpRequestMessage(HttpMethod.Put, url);
+            using var request = new HttpRequestMessage(HttpMethod.Put, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
             request.Content = data.AsJsonContent();
 
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
             var updatedObject = await response.Content.ReadAs<T>();
             return updatedObject;
@@ -84,10 +84,10 @@ namespace Practical.Jwt.Client
         {
             await SetBearerToken(accessToken);
 
-            var request = new HttpRequestMessage(HttpMethod.Delete, url);
+            using var request = new HttpRequestMessage(HttpMethod.Delete, url);
             request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
-            var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+            using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
             response.EnsureSuccessStatusCode();
         }
     }
