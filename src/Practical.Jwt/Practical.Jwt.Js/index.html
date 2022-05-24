@@ -28,7 +28,6 @@
       function refreshToken() {
         axios
           .post("https://localhost:44352/api/users/refreshToken", {
-            userName: "test@abc.com",
             refreshToken: tokenInfo.refreshToken,
           })
           .then(function (response) {

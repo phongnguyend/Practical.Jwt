@@ -19,7 +19,6 @@ namespace Practical.Jwt.Client
 
             tokenResponse = await httpService.RefreshToken("https://localhost:44352/api/users/refreshToken", new RefreshTokenRequest
             {
-                UserName = "test@abc.com",
                 RefreshToken = tokenResponse["refreshToken"]
             });
 

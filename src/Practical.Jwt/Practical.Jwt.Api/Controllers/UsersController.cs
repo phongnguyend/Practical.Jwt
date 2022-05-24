@@ -10,6 +10,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using CryptographyHelper.HashAlgorithms;
+using Practical.Jwt.Api.Entities;
 
 namespace Practical.Jwt.Api.Controllers
 {
@@ -19,7 +21,7 @@ namespace Practical.Jwt.Api.Controllers
     public class UsersController : ControllerBase
     {
         private static readonly object _lock = new object();
-        private static readonly Dictionary<string, (string Token, DateTimeOffset Expiration)> _refreshTokens = new Dictionary<string, (string Token, DateTimeOffset Expiration)>();
+        private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
         private readonly IConfiguration _configuration;
 
         public UsersController(IConfiguration configuration)
@@ -84,7 +86,11 @@ namespace Practical.Jwt.Api.Controllers
 
             lock (_lock)
             {
-                _refreshTokens[model.UserName] = (refreshToken, DateTimeOffset.UtcNow.AddHours(24));
+                _refreshTokens.Add(refreshToken, new RefreshToken
+                {
+                    UserName = model.UserName,
+                    Expiration = DateTimeOffset.UtcNow.AddHours(24)
+                });
             }
 
             return Ok(new
@@ -101,23 +107,30 @@ namespace Practical.Jwt.Api.Controllers
         [Route("refreshtoken")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenModel model)
         {
-            if (model != null)
-            {
-                model.UserName = model?.UserName?.ToLowerInvariant();
-            }
-
-            var validRefreshToken = _refreshTokens.ContainsKey(model.UserName)
-                && _refreshTokens[model.UserName].Token == model.RefreshToken
-                && _refreshTokens[model.UserName].Expiration > DateTimeOffset.Now;
-
-            if (!validRefreshToken)
+            if (!_refreshTokens.ContainsKey(model.RefreshToken))
             {
                 return BadRequest();
             }
+            else if (_refreshTokens[model.RefreshToken].ConsumedTime != null)
+            {
+                // TODO: logout and inform user
+                return BadRequest();
+            }
+            else if (_refreshTokens[model.RefreshToken].Expiration < DateTimeOffset.Now)
+            {
+                lock (_lock)
+                {
+                    _refreshTokens.Remove(model.RefreshToken);
+                }
+
+                return BadRequest();
+            }
+
+            var userName = _refreshTokens[model.RefreshToken].UserName;
 
             var authClaims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, model.UserName),
+                new Claim(ClaimTypes.Name, userName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
             };
@@ -127,12 +140,18 @@ namespace Practical.Jwt.Api.Controllers
 
             lock (_lock)
             {
-                _refreshTokens[model.UserName] = (refreshToken, DateTimeOffset.UtcNow.AddHours(24));
+                _refreshTokens[model.RefreshToken].ConsumedTime = DateTimeOffset.UtcNow;
+
+                _refreshTokens.Add(refreshToken, new RefreshToken
+                {
+                    UserName = userName,
+                    Expiration = DateTimeOffset.UtcNow.AddHours(24)
+                });
             }
 
             return Ok(new
             {
-                UserName = model.UserName,
+                UserName = userName,
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshToken = refreshToken,
                 Expiration = token.ValidTo
@@ -158,7 +177,7 @@ namespace Practical.Jwt.Api.Controllers
             var randomNumber = new byte[64];
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(randomNumber);
-            return Convert.ToBase64String(randomNumber);
+            return randomNumber.UseSha256().ComputeHashedString();
         }
 
         private void ValidateToken(string token)
