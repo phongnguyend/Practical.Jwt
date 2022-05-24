@@ -9,5 +9,7 @@ namespace Practical.Jwt.Api.Entities
         public DateTimeOffset Expiration { get; set; }
 
         public DateTimeOffset? ConsumedTime { get; set; }
+
+        public string TokenHash { get; set; }
     }
 }

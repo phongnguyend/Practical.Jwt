@@ -82,14 +82,17 @@ namespace Practical.Jwt.Api.Controllers
             };
 
             var token = CreateToken(authClaims);
-            var refreshToken = GenerateRefreshToken();
+            var refreshTokenPart1 = GenerateRefreshToken();
+            var refreshTokenPart2 = GenerateRefreshToken();
+            var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
 
             lock (_lock)
             {
-                _refreshTokens.Add(refreshToken, new RefreshToken
+                _refreshTokens.Add(refreshTokenPart1, new RefreshToken
                 {
                     UserName = model.UserName,
-                    Expiration = DateTimeOffset.UtcNow.AddHours(24)
+                    Expiration = DateTimeOffset.UtcNow.AddHours(24),
+                    TokenHash = refreshToken.UseSha256().ComputeHashedString()
                 });
             }
 
@@ -107,26 +110,32 @@ namespace Practical.Jwt.Api.Controllers
         [Route("refreshtoken")]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenModel model)
         {
-            if (!_refreshTokens.ContainsKey(model.RefreshToken))
+            string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
+
+            if (!_refreshTokens.ContainsKey(refreshTokenPart1))
             {
                 return BadRequest();
             }
-            else if (_refreshTokens[model.RefreshToken].ConsumedTime != null)
+            else if (_refreshTokens[refreshTokenPart1].ConsumedTime != null)
             {
                 // TODO: logout and inform user
                 return BadRequest();
             }
-            else if (_refreshTokens[model.RefreshToken].Expiration < DateTimeOffset.Now)
+            else if (_refreshTokens[refreshTokenPart1].Expiration < DateTimeOffset.Now)
             {
                 lock (_lock)
                 {
-                    _refreshTokens.Remove(model.RefreshToken);
+                    _refreshTokens.Remove(refreshTokenPart1);
                 }
 
                 return BadRequest();
             }
+            else if (_refreshTokens[refreshTokenPart1].TokenHash != model.RefreshToken.UseSha256().ComputeHashedString())
+            {
+                return BadRequest();
+            }
 
-            var userName = _refreshTokens[model.RefreshToken].UserName;
+            var userName = _refreshTokens[refreshTokenPart1].UserName;
 
             var authClaims = new List<Claim>
             {
@@ -136,16 +145,19 @@ namespace Practical.Jwt.Api.Controllers
             };
 
             var token = CreateToken(authClaims);
-            var refreshToken = GenerateRefreshToken();
+            var newRefreshTokenPart1 = GenerateRefreshToken();
+            var newRefreshTokenPart2 = GenerateRefreshToken();
+            var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
 
             lock (_lock)
             {
-                _refreshTokens[model.RefreshToken].ConsumedTime = DateTimeOffset.UtcNow;
+                _refreshTokens[refreshTokenPart1].ConsumedTime = DateTimeOffset.UtcNow;
 
-                _refreshTokens.Add(refreshToken, new RefreshToken
+                _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
                 {
                     UserName = userName,
-                    Expiration = DateTimeOffset.UtcNow.AddHours(24)
+                    Expiration = DateTimeOffset.UtcNow.AddHours(24),
+                    TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
                 });
             }
 
@@ -153,7 +165,7 @@ namespace Practical.Jwt.Api.Controllers
             {
                 UserName = userName,
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-                RefreshToken = refreshToken,
+                RefreshToken = newRefreshToken,
                 Expiration = token.ValidTo
             });
         }
