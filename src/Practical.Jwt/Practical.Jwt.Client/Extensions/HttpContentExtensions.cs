@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Serialization;
 
-namespace Practical.Jwt.Client
+namespace Practical.Jwt.Client.Extensions
 {
     public static class HttpContentExtensions
     {

@@ -3,7 +3,7 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 
-namespace Practical.Jwt.Client
+namespace Practical.Jwt.Client.Extensions
 {
     public static class HttpClientExtensions
     {

@@ -1,4 +1,4 @@
-﻿namespace Practical.Jwt.Client
+﻿namespace Practical.Jwt.Client.Models
 {
     public class LoginRequest
     {

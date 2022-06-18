@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using Practical.Jwt.Client.Extensions;
+using Practical.Jwt.Client.Models;
+using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;

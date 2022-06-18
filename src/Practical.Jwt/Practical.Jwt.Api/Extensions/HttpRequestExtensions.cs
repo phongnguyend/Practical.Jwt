@@ -2,7 +2,7 @@
 using System;
 using System.Text;
 
-namespace Practical.Jwt.Api
+namespace Practical.Jwt.Api.Extensions
 {
     public static class HttpRequestExtensions
     {
