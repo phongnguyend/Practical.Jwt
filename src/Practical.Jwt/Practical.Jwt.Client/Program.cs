@@ -11,14 +11,14 @@ namespace Practical.Jwt.Client
         {
             var httpService = new HttpService(new HttpClient());
 
-            var tokenResponse = await httpService.GetToken("https://localhost:44352/api/users/login", new LoginRequest
+            var tokenResponse = await httpService.GetToken("https://localhost:44352/token/authenticate", new LoginRequest
             {
                 UserName = "test@abc.com"
             });
 
             var users = await httpService.GetAsync<List<UserModel>>(url: "https://localhost:44352/api/users", accessToken: tokenResponse["accessToken"]);
 
-            tokenResponse = await httpService.RefreshToken("https://localhost:44352/api/users/refreshToken", new RefreshTokenRequest
+            tokenResponse = await httpService.RefreshToken("https://localhost:44352/token/refresh", new RefreshTokenRequest
             {
                 RefreshToken = tokenResponse["refreshToken"]
             });
