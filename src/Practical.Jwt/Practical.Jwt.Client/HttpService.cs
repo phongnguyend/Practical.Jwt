@@ -16,13 +16,13 @@ namespace Practical.Jwt.Client
             _httpClient = httpClient;
         }
 
-        public async Task<Dictionary<string, string>> GetToken(string tokenEndpoint, LoginRequest request)
+        public async Task<Dictionary<string, string>> GetToken(string tokenEndpoint, TokenRequestModel request)
         {
             var tokenResponse = await PostAsync<Dictionary<string, string>>(tokenEndpoint, request);
             return tokenResponse;
         }
 
-        public async Task<Dictionary<string, string>> RefreshToken(string tokenEndpoint, RefreshTokenRequest request)
+        public async Task<Dictionary<string, string>> RefreshToken(string tokenEndpoint, TokenRequestModel request)
         {
             var tokenResponse = await PostAsync<Dictionary<string, string>>(tokenEndpoint, request);
             return tokenResponse;

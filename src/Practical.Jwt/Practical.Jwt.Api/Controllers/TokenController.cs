@@ -14,7 +14,7 @@ using System.Text;
 
 namespace Practical.Jwt.Api.Controllers
 {
-    [Route("token")]
+    [Route("connect/token")]
     [ApiController]
     public class TokenController : Controller
     {
@@ -29,14 +29,33 @@ namespace Practical.Jwt.Api.Controllers
 
         [AllowAnonymous]
         [HttpPost]
-        [Route("authenticate")]
-        public IActionResult Login([FromBody] LoginModel model)
+        public IActionResult RequestToken([FromBody] TokenRequestModel model)
         {
             if (model != null)
             {
                 model.UserName = model?.UserName?.ToLowerInvariant();
             }
 
+            switch (model.GrantType)
+            {
+                case "password":
+                    return GrantResourceOwnerCredentials(model);
+
+                case "refresh_token":
+                    return RefreshToken(model);
+
+                //case "client_credentials":
+                //    return GrantClientCredentials(model);
+
+                default:
+                    return BadRequest(new TokenResponseModel { Error = "unsupported_grant_type" });
+            }
+
+            
+        }
+
+        private IActionResult GrantResourceOwnerCredentials(TokenRequestModel model)
+        {
             var authClaims = new List<Claim>
             {
                 new Claim(ClaimTypes.Name, model.UserName),
@@ -59,19 +78,15 @@ namespace Practical.Jwt.Api.Controllers
                 });
             }
 
-            return Ok(new
+            return Ok(new TokenResponseModel
             {
-                UserName = model.UserName,
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshToken = refreshToken,
-                Expiration = token.ValidTo
+                Expires = token.ValidTo
             });
         }
 
-        [AllowAnonymous]
-        [HttpPost]
-        [Route("refresh")]
-        public IActionResult RefreshToken([FromBody] RefreshTokenModel model)
+        private IActionResult RefreshToken([FromBody] TokenRequestModel model)
         {
             string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
 
@@ -124,12 +139,11 @@ namespace Practical.Jwt.Api.Controllers
                 });
             }
 
-            return Ok(new
+            return Ok(new TokenResponseModel
             {
-                UserName = userName,
                 AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
                 RefreshToken = newRefreshToken,
-                Expiration = token.ValidTo
+                Expires = token.ValidTo
             });
         }
 

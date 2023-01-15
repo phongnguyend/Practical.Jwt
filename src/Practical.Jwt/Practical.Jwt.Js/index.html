@@ -12,8 +12,9 @@
       let tokenInfo;
       function authenticate() {
         axios
-          .post("https://localhost:44352/token/authenticate", {
-            userName: "test@abc.com",
+          .post("https://localhost:44352/connect/token", {
+            grant_type: "password",
+            username: "test@abc.com",
             password: "xxx",
           })
           .then(function (response) {
@@ -27,8 +28,9 @@
 
       function refreshToken() {
         axios
-          .post("https://localhost:44352/token/refresh", {
-            refreshToken: tokenInfo.refreshToken,
+          .post("https://localhost:44352/connect/token", {
+            grant_type: "refresh_token",
+            refresh_token: tokenInfo.refresh_token,
           })
           .then(function (response) {
             tokenInfo = response.data;
@@ -42,7 +44,7 @@
       function getUsers() {
         let config = {
           headers: {
-            authorization: "Bearer " + tokenInfo.accessToken,
+            authorization: "Bearer " + tokenInfo.access_token,
           },
         };
         axios
