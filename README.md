@@ -11,3 +11,6 @@
 - [The Case Against Token-Based Authorization](https://cerbos.dev/blog/the-case-against-token-based-authorization)
 - [JWT tokens should be invalidated on the server after logout (A1) · Issue #544 · OWASP/Top10](https://github.com/OWASP/Top10/issues/544)
 - [XSS - localStorage vs Cookies](https://academind.com/tutorials/localstorage-vs-cookies-xss)
+
+## OAuth 2.0:
+- [Access Token Response - OAuth 2.0 Simplified](https://www.oauth.com/oauth2-servers/access-tokens/access-token-response/)
