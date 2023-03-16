@@ -31,9 +31,9 @@ namespace Practical.Jwt.Api
                 {
                     ValidateIssuer = true,
                     ValidateAudience = true,
-                    ValidIssuer = Configuration["Jwt:Issuer"],
-                    ValidAudience = Configuration["Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Jwt:SymmetricKey"]))
+                    ValidIssuer = Configuration["Auth:Jwt:Issuer"],
+                    ValidAudience = Configuration["Auth:Jwt:Audience"],
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Auth:Jwt:SymmetricKey"]))
                 };
             });
         }

@@ -51,7 +51,7 @@ namespace Practical.Jwt.Api.Controllers
                     return BadRequest(new TokenResponseModel { Error = "unsupported_grant_type" });
             }
 
-            
+
         }
 
         private IActionResult GrantResourceOwnerCredentials(TokenRequestModel model)
@@ -63,7 +63,7 @@ namespace Practical.Jwt.Api.Controllers
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
             };
 
-            var token = CreateToken(authClaims);
+            var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
             var refreshTokenPart1 = GenerateRefreshToken();
             var refreshTokenPart2 = GenerateRefreshToken();
             var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
@@ -73,7 +73,7 @@ namespace Practical.Jwt.Api.Controllers
                 _refreshTokens.Add(refreshTokenPart1, new RefreshToken
                 {
                     UserName = model.UserName,
-                    Expiration = DateTimeOffset.UtcNow.AddHours(24),
+                    Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
                     TokenHash = refreshToken.UseSha256().ComputeHashedString()
                 });
             }
@@ -122,7 +122,7 @@ namespace Practical.Jwt.Api.Controllers
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
             };
 
-            var token = CreateToken(authClaims);
+            var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
             var newRefreshTokenPart1 = GenerateRefreshToken();
             var newRefreshTokenPart2 = GenerateRefreshToken();
             var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
@@ -134,7 +134,7 @@ namespace Practical.Jwt.Api.Controllers
                 _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
                 {
                     UserName = userName,
-                    Expiration = DateTimeOffset.UtcNow.AddHours(24),
+                    Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
                     TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
                 });
             }
@@ -147,14 +147,14 @@ namespace Practical.Jwt.Api.Controllers
             });
         }
 
-        private JwtSecurityToken CreateToken(List<Claim> authClaims)
+        private JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
         {
-            var symmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:SymmetricKey"]));
+            var symmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SymmetricKey"]));
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["Jwt:Issuer"],
-                audience: _configuration["Jwt:Audience"],
-                expires: DateTime.Now.AddMinutes(5),
+                issuer: _configuration["Auth:Jwt:Issuer"],
+                audience: _configuration["Auth:Jwt:Audience"],
+                expires: expires,
                 claims: authClaims,
                 signingCredentials: new SigningCredentials(symmetricKey, SecurityAlgorithms.HmacSha256));
 
@@ -175,10 +175,10 @@ namespace Practical.Jwt.Api.Controllers
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
-                ValidIssuer = _configuration["Jwt:Issuer"],
-                ValidAudience = _configuration["Jwt:Audience"],
+                ValidIssuer = _configuration["Auth:Jwt:Issuer"],
+                ValidAudience = _configuration["Auth:Jwt:Audience"],
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:SymmetricKey"])),
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:JWT:SymmetricKey"])),
                 ValidateLifetime = false
             };
 
