@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace Practical.Jwt.Api
@@ -33,9 +34,19 @@ namespace Practical.Jwt.Api
                     ValidateAudience = true,
                     ValidIssuer = Configuration["Auth:Jwt:Issuer"],
                     ValidAudience = Configuration["Auth:Jwt:Audience"],
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Auth:Jwt:SymmetricKey"]))
+                    IssuerSigningKey = GetSigningKey()
                 };
             });
+        }
+
+        private SecurityKey GetSigningKey()
+        {
+            if (!string.IsNullOrWhiteSpace(Configuration["Auth:Jwt:SigningSymmetricKey"]))
+            {
+                return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Auth:Jwt:SigningSymmetricKey"]));
+            }
+
+            return new X509SecurityKey(new X509Certificate2(Configuration["Auth:Jwt:SigningCertificate:Path"], Configuration["Auth:Jwt:SigningCertificate:Password"]));
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

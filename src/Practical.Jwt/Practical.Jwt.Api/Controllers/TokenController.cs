@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
 namespace Practical.Jwt.Api.Controllers
@@ -149,14 +150,12 @@ namespace Practical.Jwt.Api.Controllers
 
         private JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
         {
-            var symmetricKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SymmetricKey"]));
-
             var token = new JwtSecurityToken(
                 issuer: _configuration["Auth:Jwt:Issuer"],
                 audience: _configuration["Auth:Jwt:Audience"],
                 expires: expires,
                 claims: authClaims,
-                signingCredentials: new SigningCredentials(symmetricKey, SecurityAlgorithms.HmacSha256));
+                signingCredentials: GetSigningCredentials());
 
             return token;
         }
@@ -169,6 +168,30 @@ namespace Practical.Jwt.Api.Controllers
             return randomNumber.UseSha256().ComputeHashedString();
         }
 
+        private SecurityKey GetSigningKey()
+        {
+            if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
+            {
+                return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
+            }
+
+            return new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+        }
+
+        private SigningCredentials GetSigningCredentials()
+        {
+            if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
+            {
+                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
+                return new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
+            }
+            else
+            {
+                var securityKey = new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+                return new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
+            }
+        }
+
         private void ValidateToken(string token)
         {
             var tokenValidationParameters = new TokenValidationParameters
@@ -178,7 +201,7 @@ namespace Practical.Jwt.Api.Controllers
                 ValidIssuer = _configuration["Auth:Jwt:Issuer"],
                 ValidAudience = _configuration["Auth:Jwt:Audience"],
                 ValidateIssuerSigningKey = true,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:JWT:SymmetricKey"])),
+                IssuerSigningKey = GetSigningKey(),
                 ValidateLifetime = false
             };
 
