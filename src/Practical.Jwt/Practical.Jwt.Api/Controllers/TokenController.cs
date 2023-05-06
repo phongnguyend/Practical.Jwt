@@ -13,200 +13,199 @@ using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-namespace Practical.Jwt.Api.Controllers
+namespace Practical.Jwt.Api.Controllers;
+
+[Route("connect/token")]
+[ApiController]
+public class TokenController : Controller
 {
-    [Route("connect/token")]
-    [ApiController]
-    public class TokenController : Controller
+    private static readonly object _lock = new object();
+    private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
+    private readonly IConfiguration _configuration;
+
+    public TokenController(IConfiguration configuration)
     {
-        private static readonly object _lock = new object();
-        private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
-        private readonly IConfiguration _configuration;
+        _configuration = configuration;
+    }
 
-        public TokenController(IConfiguration configuration)
+    [AllowAnonymous]
+    [HttpPost]
+    public IActionResult RequestToken([FromBody] TokenRequestModel model)
+    {
+        if (model != null)
         {
-            _configuration = configuration;
+            model.UserName = model?.UserName?.ToLowerInvariant();
         }
 
-        [AllowAnonymous]
-        [HttpPost]
-        public IActionResult RequestToken([FromBody] TokenRequestModel model)
+        switch (model.GrantType)
         {
-            if (model != null)
-            {
-                model.UserName = model?.UserName?.ToLowerInvariant();
-            }
+            case "password":
+                return GrantResourceOwnerCredentials(model);
 
-            switch (model.GrantType)
-            {
-                case "password":
-                    return GrantResourceOwnerCredentials(model);
+            case "refresh_token":
+                return RefreshToken(model);
 
-                case "refresh_token":
-                    return RefreshToken(model);
+            //case "client_credentials":
+            //    return GrantClientCredentials(model);
 
-                //case "client_credentials":
-                //    return GrantClientCredentials(model);
-
-                default:
-                    return BadRequest(new TokenResponseModel { Error = "unsupported_grant_type" });
-            }
-
-
+            default:
+                return BadRequest(new TokenResponseModel { Error = "unsupported_grant_type" });
         }
 
-        private IActionResult GrantResourceOwnerCredentials(TokenRequestModel model)
+
+    }
+
+    private IActionResult GrantResourceOwnerCredentials(TokenRequestModel model)
+    {
+        var authClaims = new List<Claim>
         {
-            var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, model.UserName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
-            };
+            new Claim(ClaimTypes.Name, model.UserName),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
+        };
 
-            var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
-            var refreshTokenPart1 = GenerateRefreshToken();
-            var refreshTokenPart2 = GenerateRefreshToken();
-            var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
+        var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
+        var refreshTokenPart1 = GenerateRefreshToken();
+        var refreshTokenPart2 = GenerateRefreshToken();
+        var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
 
-            lock (_lock)
+        lock (_lock)
+        {
+            _refreshTokens.Add(refreshTokenPart1, new RefreshToken
             {
-                _refreshTokens.Add(refreshTokenPart1, new RefreshToken
-                {
-                    UserName = model.UserName,
-                    Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
-                    TokenHash = refreshToken.UseSha256().ComputeHashedString()
-                });
-            }
-
-            return Ok(new TokenResponseModel
-            {
-                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-                RefreshToken = refreshToken,
-                Expires = token.ValidTo
+                UserName = model.UserName,
+                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
+                TokenHash = refreshToken.UseSha256().ComputeHashedString()
             });
         }
 
-        private IActionResult RefreshToken([FromBody] TokenRequestModel model)
+        return Ok(new TokenResponseModel
         {
-            string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+            RefreshToken = refreshToken,
+            Expires = token.ValidTo
+        });
+    }
 
-            if (!_refreshTokens.ContainsKey(refreshTokenPart1))
-            {
-                return BadRequest();
-            }
-            else if (_refreshTokens[refreshTokenPart1].ConsumedTime != null)
-            {
-                // TODO: logout and inform user
-                return BadRequest();
-            }
-            else if (_refreshTokens[refreshTokenPart1].Expiration < DateTimeOffset.Now)
-            {
-                lock (_lock)
-                {
-                    _refreshTokens.Remove(refreshTokenPart1);
-                }
+    private IActionResult RefreshToken([FromBody] TokenRequestModel model)
+    {
+        string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
 
-                return BadRequest();
-            }
-            else if (_refreshTokens[refreshTokenPart1].TokenHash != model.RefreshToken.UseSha256().ComputeHashedString())
-            {
-                return BadRequest();
-            }
-
-            var userName = _refreshTokens[refreshTokenPart1].UserName;
-
-            var authClaims = new List<Claim>
-            {
-                new Claim(ClaimTypes.Name, userName),
-                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
-            };
-
-            var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
-            var newRefreshTokenPart1 = GenerateRefreshToken();
-            var newRefreshTokenPart2 = GenerateRefreshToken();
-            var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
-
+        if (!_refreshTokens.ContainsKey(refreshTokenPart1))
+        {
+            return BadRequest();
+        }
+        else if (_refreshTokens[refreshTokenPart1].ConsumedTime != null)
+        {
+            // TODO: logout and inform user
+            return BadRequest();
+        }
+        else if (_refreshTokens[refreshTokenPart1].Expiration < DateTimeOffset.Now)
+        {
             lock (_lock)
             {
-                _refreshTokens[refreshTokenPart1].ConsumedTime = DateTimeOffset.UtcNow;
-
-                _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
-                {
-                    UserName = userName,
-                    Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
-                    TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
-                });
+                _refreshTokens.Remove(refreshTokenPart1);
             }
 
-            return Ok(new TokenResponseModel
+            return BadRequest();
+        }
+        else if (_refreshTokens[refreshTokenPart1].TokenHash != model.RefreshToken.UseSha256().ComputeHashedString())
+        {
+            return BadRequest();
+        }
+
+        var userName = _refreshTokens[refreshTokenPart1].UserName;
+
+        var authClaims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, userName),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
+        };
+
+        var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
+        var newRefreshTokenPart1 = GenerateRefreshToken();
+        var newRefreshTokenPart2 = GenerateRefreshToken();
+        var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
+
+        lock (_lock)
+        {
+            _refreshTokens[refreshTokenPart1].ConsumedTime = DateTimeOffset.UtcNow;
+
+            _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
             {
-                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-                RefreshToken = newRefreshToken,
-                Expires = token.ValidTo
+                UserName = userName,
+                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
+                TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
             });
         }
 
-        private JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
+        return Ok(new TokenResponseModel
         {
-            var token = new JwtSecurityToken(
-                issuer: _configuration["Auth:Jwt:Issuer"],
-                audience: _configuration["Auth:Jwt:Audience"],
-                expires: expires,
-                claims: authClaims,
-                signingCredentials: GetSigningCredentials());
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+            RefreshToken = newRefreshToken,
+            Expires = token.ValidTo
+        });
+    }
 
-            return token;
+    private JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
+    {
+        var token = new JwtSecurityToken(
+            issuer: _configuration["Auth:Jwt:Issuer"],
+            audience: _configuration["Auth:Jwt:Audience"],
+            expires: expires,
+            claims: authClaims,
+            signingCredentials: GetSigningCredentials());
+
+        return token;
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        var randomNumber = new byte[64];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return randomNumber.UseSha256().ComputeHashedString();
+    }
+
+    private SecurityKey GetSigningKey()
+    {
+        if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
+        {
+            return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
         }
 
-        private static string GenerateRefreshToken()
+        return new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+    }
+
+    private SigningCredentials GetSigningCredentials()
+    {
+        if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
         {
-            var randomNumber = new byte[64];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(randomNumber);
-            return randomNumber.UseSha256().ComputeHashedString();
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
+            return new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         }
-
-        private SecurityKey GetSigningKey()
+        else
         {
-            if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
-            {
-                return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
-            }
-
-            return new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+            var securityKey = new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+            return new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
         }
+    }
 
-        private SigningCredentials GetSigningCredentials()
+    private void ValidateToken(string token)
+    {
+        var tokenValidationParameters = new TokenValidationParameters
         {
-            if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
-            {
-                var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
-                return new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
-            }
-            else
-            {
-                var securityKey = new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
-                return new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
-            }
-        }
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidIssuer = _configuration["Auth:Jwt:Issuer"],
+            ValidAudience = _configuration["Auth:Jwt:Audience"],
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = GetSigningKey(),
+            ValidateLifetime = false
+        };
 
-        private void ValidateToken(string token)
-        {
-            var tokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidIssuer = _configuration["Auth:Jwt:Issuer"],
-                ValidAudience = _configuration["Auth:Jwt:Audience"],
-                ValidateIssuerSigningKey = true,
-                IssuerSigningKey = GetSigningKey(),
-                ValidateLifetime = false
-            };
-
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
-        }
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
     }
 }

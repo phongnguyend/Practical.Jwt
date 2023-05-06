@@ -1,15 +1,14 @@
 ﻿using System;
 
-namespace Practical.Jwt.Api.Entities
+namespace Practical.Jwt.Api.Entities;
+
+public class RefreshToken
 {
-    public class RefreshToken
-    {
-        public string UserName { get; set; }
+    public string UserName { get; set; }
 
-        public DateTimeOffset Expiration { get; set; }
+    public DateTimeOffset Expiration { get; set; }
 
-        public DateTimeOffset? ConsumedTime { get; set; }
+    public DateTimeOffset? ConsumedTime { get; set; }
 
-        public string TokenHash { get; set; }
-    }
+    public string TokenHash { get; set; }
 }

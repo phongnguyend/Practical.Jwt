@@ -1,7 +1,6 @@
-﻿namespace Practical.Jwt.Client.Models
+﻿namespace Practical.Jwt.Client.Models;
+
+public class UserModel
 {
-    public class UserModel
-    {
-        public string Id { get; set; }
-    }
+    public string Id { get; set; }
 }
