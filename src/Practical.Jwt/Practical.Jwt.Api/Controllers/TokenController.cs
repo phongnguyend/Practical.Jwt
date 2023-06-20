@@ -12,6 +12,8 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Practical.Jwt.Api.Controllers;
 
@@ -19,7 +21,7 @@ namespace Practical.Jwt.Api.Controllers;
 [ApiController]
 public class TokenController : Controller
 {
-    private static readonly object _lock = new object();
+    private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
     private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
     private readonly IConfiguration _configuration;
 
@@ -30,7 +32,7 @@ public class TokenController : Controller
 
     [AllowAnonymous]
     [HttpPost]
-    public IActionResult RequestToken([FromBody] TokenRequestModel model)
+    public async Task<IActionResult> RequestToken([FromBody] TokenRequestModel model)
     {
         if (model != null)
         {
@@ -40,10 +42,10 @@ public class TokenController : Controller
         switch (model.GrantType)
         {
             case "password":
-                return GrantResourceOwnerCredentials(model);
+                return await GrantResourceOwnerCredentialsAsync(model);
 
             case "refresh_token":
-                return RefreshToken(model);
+                return await RefreshTokenAsync(model);
 
             //case "client_credentials":
             //    return GrantClientCredentials(model);
@@ -55,7 +57,7 @@ public class TokenController : Controller
 
     }
 
-    private IActionResult GrantResourceOwnerCredentials(TokenRequestModel model)
+    private async Task<IActionResult> GrantResourceOwnerCredentialsAsync(TokenRequestModel model)
     {
         var authClaims = new List<Claim>
         {
@@ -69,7 +71,8 @@ public class TokenController : Controller
         var refreshTokenPart2 = GenerateRefreshToken();
         var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
 
-        lock (_lock)
+        await _lock.WaitAsync();
+        try
         {
             _refreshTokens.Add(refreshTokenPart1, new RefreshToken
             {
@@ -77,6 +80,10 @@ public class TokenController : Controller
                 Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
                 TokenHash = refreshToken.UseSha256().ComputeHashedString()
             });
+        }
+        finally
+        {
+            _lock.Release();
         }
 
         return Ok(new TokenResponseModel
@@ -87,49 +94,47 @@ public class TokenController : Controller
         });
     }
 
-    private IActionResult RefreshToken([FromBody] TokenRequestModel model)
+    private async Task<IActionResult> RefreshTokenAsync([FromBody] TokenRequestModel model)
     {
-        string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
+        await _lock.WaitAsync();
+        try
+        {
+            string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
 
-        if (!_refreshTokens.ContainsKey(refreshTokenPart1))
-        {
-            return BadRequest();
-        }
-        else if (_refreshTokens[refreshTokenPart1].ConsumedTime != null)
-        {
-            // TODO: logout and inform user
-            return BadRequest();
-        }
-        else if (_refreshTokens[refreshTokenPart1].Expiration < DateTimeOffset.Now)
-        {
-            lock (_lock)
+            if (!_refreshTokens.ContainsKey(refreshTokenPart1))
+            {
+                return BadRequest();
+            }
+            else if (_refreshTokens[refreshTokenPart1].ConsumedTime != null)
+            {
+                // TODO: logout and inform user
+                return BadRequest();
+            }
+            else if (_refreshTokens[refreshTokenPart1].Expiration < DateTimeOffset.Now)
             {
                 _refreshTokens.Remove(refreshTokenPart1);
+
+                return BadRequest();
+            }
+            else if (_refreshTokens[refreshTokenPart1].TokenHash != model.RefreshToken.UseSha256().ComputeHashedString())
+            {
+                return BadRequest();
             }
 
-            return BadRequest();
-        }
-        else if (_refreshTokens[refreshTokenPart1].TokenHash != model.RefreshToken.UseSha256().ComputeHashedString())
-        {
-            return BadRequest();
-        }
+            var userName = _refreshTokens[refreshTokenPart1].UserName;
 
-        var userName = _refreshTokens[refreshTokenPart1].UserName;
-
-        var authClaims = new List<Claim>
+            var authClaims = new List<Claim>
         {
             new Claim(ClaimTypes.Name, userName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
         };
 
-        var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
-        var newRefreshTokenPart1 = GenerateRefreshToken();
-        var newRefreshTokenPart2 = GenerateRefreshToken();
-        var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
+            var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
+            var newRefreshTokenPart1 = GenerateRefreshToken();
+            var newRefreshTokenPart2 = GenerateRefreshToken();
+            var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
 
-        lock (_lock)
-        {
             _refreshTokens[refreshTokenPart1].ConsumedTime = DateTimeOffset.UtcNow;
 
             _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
@@ -138,14 +143,18 @@ public class TokenController : Controller
                 Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
                 TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
             });
-        }
 
-        return Ok(new TokenResponseModel
+            return Ok(new TokenResponseModel
+            {
+                AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+                RefreshToken = newRefreshToken,
+                Expires = token.ValidTo
+            });
+        }
+        finally
         {
-            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
-            RefreshToken = newRefreshToken,
-            Expires = token.ValidTo
-        });
+            _lock.Release();
+        }
     }
 
     private JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)

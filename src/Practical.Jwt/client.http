@@ -1,0 +1,17 @@
+POST https://localhost:44352/connect/token HTTP/1.1
+content-type: application/json
+
+{
+    "grant_type": "password",
+    "username": "test@abc.com"
+}
+
+###
+
+POST https://localhost:44352/connect/token HTTP/1.1
+content-type: application/json
+
+{
+    "grant_type": "refresh_token",
+    "refresh_token": "39A9ACCB3E7AE79584581126541C513775D12C0CC51B4E252CCDA44841FA2BC3.5774290F55EAAAA988E8546C6C7FDE65F1D7E8C359E7542ED1D57B98A4A9EDF6"
+}
