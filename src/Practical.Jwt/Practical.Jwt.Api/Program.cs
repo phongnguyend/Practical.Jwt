@@ -5,6 +5,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -30,7 +31,8 @@ public class Program
                 ValidateAudience = true,
                 ValidIssuer = configuration["Auth:Jwt:Issuer"],
                 ValidAudience = configuration["Auth:Jwt:Audience"],
-                IssuerSigningKey = GetSigningKey(configuration)
+                IssuerSigningKey = GetSigningKey(configuration),
+                ClockSkew = TimeSpan.FromSeconds(120) // default TimeSpan.FromSeconds(300)
             };
         });
 
