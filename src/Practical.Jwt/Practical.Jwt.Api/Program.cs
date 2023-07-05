@@ -5,68 +5,95 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Practical.Jwt.Api.Endpoints;
 using System;
+using System.Linq;
+using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
-public class Program
+var builder = WebApplication.CreateBuilder(args);
+
+// Add services to the container.
+var services = builder.Services;
+var configuration = builder.Configuration;
+
+var useMinimalApi = true;
+
+var endpointHandlerTypes = Assembly.GetCallingAssembly()
+    .GetTypes()
+    .Where(x => x.GetInterfaces() != null && x.GetInterfaces().Contains(typeof(IEndpointHandler)))
+    .ToList();
+
+if (useMinimalApi)
 {
-    public static void Main(string[] args)
+    services.AddAuthorization();
+    services.AddCors();
+
+    foreach (var item in endpointHandlerTypes)
     {
-        var builder = WebApplication.CreateBuilder(args);
+        services.AddTransient(item);
+    }
+}
+else
+{
+    services.AddControllers();
+}
 
-        // Add services to the container.
-        var services = builder.Services;
-        var configuration = builder.Configuration;
+services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+.AddJwtBearer(options =>
+{
+    options.SaveToken = true;
+    options.TokenValidationParameters = new TokenValidationParameters()
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidIssuer = configuration["Auth:Jwt:Issuer"],
+        ValidAudience = configuration["Auth:Jwt:Audience"],
+        IssuerSigningKey = GetSigningKey(configuration),
+        ClockSkew = TimeSpan.FromSeconds(120) // default TimeSpan.FromSeconds(300)
+    };
+});
 
-        services.AddControllers();
+// Configure the HTTP request pipeline.
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.SaveToken = true;
-            options.TokenValidationParameters = new TokenValidationParameters()
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidIssuer = configuration["Auth:Jwt:Issuer"],
-                ValidAudience = configuration["Auth:Jwt:Audience"],
-                IssuerSigningKey = GetSigningKey(configuration),
-                ClockSkew = TimeSpan.FromSeconds(120) // default TimeSpan.FromSeconds(300)
-            };
-        });
+var app = builder.Build();
 
-        // Configure the HTTP request pipeline.
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
 
-        var app = builder.Build();
+app.UseCors(configurePolicy =>
+{
+    configurePolicy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+});
 
-        if (app.Environment.IsDevelopment())
-        {
-            app.UseDeveloperExceptionPage();
-        }
+app.UseRouting();
 
-        app.UseCors(configurePolicy =>
-        {
-            configurePolicy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
-        });
+app.UseAuthentication();
+app.UseAuthorization();
 
-        app.UseRouting();
+if (useMinimalApi)
+{
+    foreach (var item in endpointHandlerTypes)
+    {
+        item.InvokeMember(nameof(IEndpointHandler.MapEndpoint), BindingFlags.InvokeMethod, null, null, new[] { app });
+    }
+}
+else
+{
+    app.MapControllers();
+}
 
-        app.UseAuthentication();
-        app.UseAuthorization();
+app.Run();
 
-        app.MapControllers();
-
-        app.Run();
+static SecurityKey GetSigningKey(ConfigurationManager configuration)
+{
+    if (!string.IsNullOrWhiteSpace(configuration["Auth:Jwt:SigningSymmetricKey"]))
+    {
+        return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:SigningSymmetricKey"]));
     }
 
-    private static SecurityKey GetSigningKey(ConfigurationManager configuration)
-    {
-        if (!string.IsNullOrWhiteSpace(configuration["Auth:Jwt:SigningSymmetricKey"]))
-        {
-            return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:SigningSymmetricKey"]));
-        }
-
-        return new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
-    }
+    return new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
 }
