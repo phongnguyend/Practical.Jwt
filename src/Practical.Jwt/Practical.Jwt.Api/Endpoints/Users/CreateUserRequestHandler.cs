@@ -10,13 +10,10 @@ public class CreateUserRequestHandler : IEndpointHandler
 {
     public static void MapEndpoint(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("api/users", async (CreateUserRequestHandler handler, UserModel model) =>
-        {
-            return await handler.HandleAsync(model);
-        }).RequireAuthorization();
+        endpoints.MapPost("api/users", HandleAsync).RequireAuthorization();
     }
 
-    public Task<IResult> HandleAsync(UserModel model)
+    private static Task<IResult> HandleAsync(UserModel model)
     {
         return Task.FromResult(Results.Ok(model));
     }

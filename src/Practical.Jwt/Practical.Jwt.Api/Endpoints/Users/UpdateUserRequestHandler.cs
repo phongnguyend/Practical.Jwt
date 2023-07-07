@@ -10,13 +10,10 @@ public class UpdateUserRequestHandler : IEndpointHandler
 {
     public static void MapEndpoint(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPut("api/users/{id}", async (UpdateUserRequestHandler handler, string id, UserModel model) =>
-        {
-            return await handler.HandleAsync(id, model);
-        }).RequireAuthorization();
+        endpoints.MapPut("api/users/{id}", HandleAsync).RequireAuthorization();
     }
 
-    public Task<IResult> HandleAsync(string id, UserModel model)
+    private static Task<IResult> HandleAsync(string id, UserModel model)
     {
         model.Id = id;
         return Task.FromResult(Results.Ok(model));

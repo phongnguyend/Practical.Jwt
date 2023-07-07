@@ -23,22 +23,14 @@ public class TokenRequestHandler : IEndpointHandler
 {
     public static void MapEndpoint(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("connect/token", async (TokenRequestHandler handler, [FromBody] TokenRequestModel model) =>
-        {
-            return await handler.HandleAsync(model);
-        }).AllowAnonymous();
+        endpoints.MapPost("connect/token", HandleAsync).AllowAnonymous();
     }
 
     private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
     private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
-    private readonly IConfiguration _configuration;
 
-    public TokenRequestHandler(IConfiguration configuration)
-    {
-        _configuration = configuration;
-    }
-
-    public async Task<IResult> HandleAsync(TokenRequestModel model)
+    private static async Task<IResult> HandleAsync(IConfiguration configuration,
+        [FromBody] TokenRequestModel model)
     {
         if (model != null)
         {
@@ -48,10 +40,10 @@ public class TokenRequestHandler : IEndpointHandler
         switch (model.GrantType)
         {
             case "password":
-                return await GrantResourceOwnerCredentialsAsync(model);
+                return await GrantResourceOwnerCredentialsAsync(configuration, model);
 
             case "refresh_token":
-                return await RefreshTokenAsync(model);
+                return await RefreshTokenAsync(configuration, model);
 
             //case "client_credentials":
             //    return GrantClientCredentials(model);
@@ -63,7 +55,7 @@ public class TokenRequestHandler : IEndpointHandler
 
     }
 
-    private async Task<IResult> GrantResourceOwnerCredentialsAsync(TokenRequestModel model)
+    private static async Task<IResult> GrantResourceOwnerCredentialsAsync(IConfiguration configuration, TokenRequestModel model)
     {
         var authClaims = new List<Claim>
         {
@@ -72,7 +64,7 @@ public class TokenRequestHandler : IEndpointHandler
             new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
         };
 
-        var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
+        var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
         var refreshTokenPart1 = GenerateRefreshToken();
         var refreshTokenPart2 = GenerateRefreshToken();
         var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
@@ -83,7 +75,7 @@ public class TokenRequestHandler : IEndpointHandler
             _refreshTokens.Add(refreshTokenPart1, new RefreshToken
             {
                 UserName = model.UserName,
-                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
+                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
                 TokenHash = refreshToken.UseSha256().ComputeHashedString()
             });
         }
@@ -100,7 +92,7 @@ public class TokenRequestHandler : IEndpointHandler
         });
     }
 
-    private async Task<IResult> RefreshTokenAsync([FromBody] TokenRequestModel model)
+    private static async Task<IResult> RefreshTokenAsync(IConfiguration configuration, [FromBody] TokenRequestModel model)
     {
         await _lock.WaitAsync();
         try
@@ -136,7 +128,7 @@ public class TokenRequestHandler : IEndpointHandler
                 new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
             };
 
-            var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
+            var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
             var newRefreshTokenPart1 = GenerateRefreshToken();
             var newRefreshTokenPart2 = GenerateRefreshToken();
             var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
@@ -146,7 +138,7 @@ public class TokenRequestHandler : IEndpointHandler
             _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
             {
                 UserName = userName,
-                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
+                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
                 TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
             });
 
@@ -163,14 +155,14 @@ public class TokenRequestHandler : IEndpointHandler
         }
     }
 
-    private JwtSecurityToken CreateToken(List<Claim> authClaims, DateTime expires)
+    private static JwtSecurityToken CreateToken(IConfiguration configuration, List<Claim> authClaims, DateTime expires)
     {
         var token = new JwtSecurityToken(
-            issuer: _configuration["Auth:Jwt:Issuer"],
-            audience: _configuration["Auth:Jwt:Audience"],
+            issuer: configuration["Auth:Jwt:Issuer"],
+            audience: configuration["Auth:Jwt:Audience"],
             expires: expires,
             claims: authClaims,
-            signingCredentials: GetSigningCredentials());
+            signingCredentials: GetSigningCredentials(configuration));
 
         return token;
     }
@@ -183,40 +175,40 @@ public class TokenRequestHandler : IEndpointHandler
         return randomNumber.UseSha256().ComputeHashedString();
     }
 
-    private SecurityKey GetSigningKey()
+    private static SecurityKey GetSigningKey(IConfiguration configuration)
     {
-        if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
+        if (!string.IsNullOrWhiteSpace(configuration["Auth:Jwt:SigningSymmetricKey"]))
         {
-            return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
+            return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:SigningSymmetricKey"]));
         }
 
-        return new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+        return new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
     }
 
-    private SigningCredentials GetSigningCredentials()
+    private static SigningCredentials GetSigningCredentials(IConfiguration configuration)
     {
-        if (!string.IsNullOrWhiteSpace(_configuration["Auth:Jwt:SigningSymmetricKey"]))
+        if (!string.IsNullOrWhiteSpace(configuration["Auth:Jwt:SigningSymmetricKey"]))
         {
-            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
+            var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:SigningSymmetricKey"]));
             return new SigningCredentials(securityKey, SecurityAlgorithms.HmacSha256);
         }
         else
         {
-            var securityKey = new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+            var securityKey = new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
             return new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
         }
     }
 
-    private void ValidateToken(string token)
+    private static void ValidateToken(IConfiguration configuration, string token)
     {
         var tokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
-            ValidIssuer = _configuration["Auth:Jwt:Issuer"],
-            ValidAudience = _configuration["Auth:Jwt:Audience"],
+            ValidIssuer = configuration["Auth:Jwt:Issuer"],
+            ValidAudience = configuration["Auth:Jwt:Audience"],
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = GetSigningKey(),
+            IssuerSigningKey = GetSigningKey(configuration),
             ValidateLifetime = false
         };
 

@@ -11,13 +11,10 @@ public class GetUsersRequestHandler : IEndpointHandler
 {
     public static void MapEndpoint(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapGet("api/users", async (GetUsersRequestHandler handler) =>
-        {
-            return await handler.HandleAsync();
-        }).RequireAuthorization();
+        endpoints.MapGet("api/users", HandleAsync).RequireAuthorization();
     }
 
-    public Task<IResult> HandleAsync()
+    private static Task<IResult> HandleAsync()
     {
         return Task.FromResult(Results.Ok(new List<UserModel>()
         {

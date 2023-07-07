@@ -9,13 +9,10 @@ public class DeleteUserRequestHandler : IEndpointHandler
 {
     public static void MapEndpoint(IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapDelete("api/users/{id}", async (DeleteUserRequestHandler handler, string id) =>
-        {
-            return await handler.HandleAsync(id);
-        }).RequireAuthorization();
+        endpoints.MapDelete("api/users/{id}", HandleAsync).RequireAuthorization();
     }
 
-    public Task<IResult> HandleAsync(string id)
+    private static Task<IResult> HandleAsync(string id)
     {
         return Task.FromResult(Results.NoContent());
     }

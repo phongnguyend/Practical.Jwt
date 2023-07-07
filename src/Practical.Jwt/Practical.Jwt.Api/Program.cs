@@ -20,20 +20,10 @@ var configuration = builder.Configuration;
 
 var useMinimalApi = true;
 
-var endpointHandlerTypes = Assembly.GetCallingAssembly()
-    .GetTypes()
-    .Where(x => x.GetInterfaces() != null && x.GetInterfaces().Contains(typeof(IEndpointHandler)))
-    .ToList();
-
 if (useMinimalApi)
 {
     services.AddAuthorization();
     services.AddCors();
-
-    foreach (var item in endpointHandlerTypes)
-    {
-        services.AddTransient(item);
-    }
 }
 else
 {
@@ -76,6 +66,11 @@ app.UseAuthorization();
 
 if (useMinimalApi)
 {
+    var endpointHandlerTypes = Assembly.GetCallingAssembly()
+    .GetTypes()
+    .Where(x => x.GetInterfaces() != null && x.GetInterfaces().Contains(typeof(IEndpointHandler)))
+    .ToList();
+
     foreach (var item in endpointHandlerTypes)
     {
         item.InvokeMember(nameof(IEndpointHandler.MapEndpoint), BindingFlags.InvokeMethod, null, null, new[] { app });
