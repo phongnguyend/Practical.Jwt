@@ -65,18 +65,18 @@ public class TokenRequestHandler : IEndpointHandler
         };
 
         var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
-        var refreshTokenPart1 = GenerateRefreshToken();
-        var refreshTokenPart2 = GenerateRefreshToken();
-        var refreshToken = $"{refreshTokenPart1}.{refreshTokenPart2}";
+
+        var refreshTokenBytes = GenerateRefreshToken();
+        var refreshToken = Convert.ToHexString(refreshTokenBytes);
+        var refreshTokenHash = Convert.ToHexString(refreshTokenBytes.UseSha256().ComputeHash());
 
         await _lock.WaitAsync();
         try
         {
-            _refreshTokens.Add(refreshTokenPart1, new RefreshToken
+            _refreshTokens.Add(refreshTokenHash, new RefreshToken
             {
                 UserName = model.UserName,
                 Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
-                TokenHash = refreshToken.UseSha256().ComputeHashedString()
             });
         }
         finally
@@ -97,29 +97,26 @@ public class TokenRequestHandler : IEndpointHandler
         await _lock.WaitAsync();
         try
         {
-            string refreshTokenPart1 = model.RefreshToken.Split('.')[0];
+            var refreshTokenBytes = Convert.FromHexString(model.RefreshToken);
+            var refreshTokenHash = Convert.ToHexString(refreshTokenBytes.UseSha256().ComputeHash());
 
-            if (!_refreshTokens.ContainsKey(refreshTokenPart1))
+            if (!_refreshTokens.ContainsKey(refreshTokenHash))
             {
                 return Results.BadRequest();
             }
-            else if (_refreshTokens[refreshTokenPart1].ConsumedTime != null)
+            else if (_refreshTokens[refreshTokenHash].ConsumedTime != null)
             {
                 // TODO: logout and inform user
                 return Results.BadRequest();
             }
-            else if (_refreshTokens[refreshTokenPart1].Expiration < DateTimeOffset.Now)
+            else if (_refreshTokens[refreshTokenHash].Expiration < DateTimeOffset.Now)
             {
-                _refreshTokens.Remove(refreshTokenPart1);
+                _refreshTokens.Remove(refreshTokenHash);
 
                 return Results.BadRequest();
             }
-            else if (_refreshTokens[refreshTokenPart1].TokenHash != model.RefreshToken.UseSha256().ComputeHashedString())
-            {
-                return Results.BadRequest();
-            }
 
-            var userName = _refreshTokens[refreshTokenPart1].UserName;
+            var userName = _refreshTokens[refreshTokenHash].UserName;
 
             var authClaims = new List<Claim>
             {
@@ -129,17 +126,17 @@ public class TokenRequestHandler : IEndpointHandler
             };
 
             var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
-            var newRefreshTokenPart1 = GenerateRefreshToken();
-            var newRefreshTokenPart2 = GenerateRefreshToken();
-            var newRefreshToken = $"{newRefreshTokenPart1}.{newRefreshTokenPart2}";
 
-            _refreshTokens[refreshTokenPart1].ConsumedTime = DateTimeOffset.UtcNow;
+            var newRefreshTokenBytes = GenerateRefreshToken();
+            var newRefreshToken = Convert.ToHexString(newRefreshTokenBytes);
+            var newRefreshTokenHash = Convert.ToHexString(newRefreshTokenBytes.UseSha256().ComputeHash());
 
-            _refreshTokens.Add(newRefreshTokenPart1, new RefreshToken
+            _refreshTokens[refreshTokenHash].ConsumedTime = DateTimeOffset.UtcNow;
+
+            _refreshTokens.Add(newRefreshTokenHash, new RefreshToken
             {
                 UserName = userName,
                 Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
-                TokenHash = newRefreshToken.UseSha256().ComputeHashedString()
             });
 
             return Results.Ok(new TokenResponseModel
@@ -167,12 +164,12 @@ public class TokenRequestHandler : IEndpointHandler
         return token;
     }
 
-    private static string GenerateRefreshToken()
+    private static byte[] GenerateRefreshToken()
     {
         var randomNumber = new byte[64];
         using var rng = RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
-        return randomNumber.UseSha256().ComputeHashedString();
+        return randomNumber;
     }
 
     private static SecurityKey GetSigningKey(IConfiguration configuration)

@@ -25,6 +25,12 @@ internal class Program
             RefreshToken = tokenResponse["refresh_token"]
         });
 
+        tokenResponse = await httpService.RefreshToken("https://localhost:44352/connect/token", new TokenRequestModel
+        {
+            GrantType = "refresh_token",
+            RefreshToken = tokenResponse["refresh_token"]
+        });
+
         var user = await httpService.PostAsync<UserModel>(url: "https://localhost:44352/api/users",
             data: new UserModel { Id = "3" },
             accessToken: tokenResponse["access_token"]);

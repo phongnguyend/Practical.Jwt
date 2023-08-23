@@ -9,6 +9,4 @@ public class RefreshToken
     public DateTimeOffset Expiration { get; set; }
 
     public DateTimeOffset? ConsumedTime { get; set; }
-
-    public string TokenHash { get; set; }
 }
