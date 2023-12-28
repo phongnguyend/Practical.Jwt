@@ -61,7 +61,7 @@ public class TokenRequestHandler : IEndpointHandler
         {
             new Claim(ClaimTypes.Name, model.UserName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
         };
 
         var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
@@ -122,7 +122,7 @@ public class TokenRequestHandler : IEndpointHandler
             {
                 new Claim(ClaimTypes.Name, userName),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToString()),
+                new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
             };
 
             var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ResourceOwnerCredentials"])));
