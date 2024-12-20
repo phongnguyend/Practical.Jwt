@@ -11,12 +11,12 @@
     <script>
       let tokenInfo;
       function authenticate() {
+        const form = new FormData();
+        form.append("grant_type", "password");
+        form.append("username", "test@abc.com");
+        form.append("password", "xxx");
         axios
-          .post("https://localhost:44352/connect/token", {
-            grant_type: "password",
-            username: "test@abc.com",
-            password: "xxx",
-          })
+          .post("https://localhost:44352/connect/token", form)
           .then(function (response) {
             console.log(response);
             tokenInfo = response.data;
@@ -27,11 +27,11 @@
       }
 
       function refreshToken() {
+        const form = new FormData();
+        form.append("grant_type", "refresh_token");
+        form.append("refresh_token", tokenInfo.refresh_token);
         axios
-          .post("https://localhost:44352/connect/token", {
-            grant_type: "refresh_token",
-            refresh_token: tokenInfo.refresh_token,
-          })
+          .post("https://localhost:44352/connect/token", form)
           .then(function (response) {
             tokenInfo = response.data;
             console.log(tokenInfo);

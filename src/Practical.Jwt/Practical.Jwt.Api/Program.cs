@@ -90,5 +90,5 @@ static SecurityKey GetSigningKey(ConfigurationManager configuration)
         return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:SigningSymmetricKey"]));
     }
 
-    return new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
+    return new X509SecurityKey(X509CertificateLoader.LoadPkcs12FromFile(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"], X509KeyStorageFlags.EphemeralKeySet));
 }

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Practical.Jwt.Api.Entities;
+using Practical.Jwt.Api.Extensions;
 using Practical.Jwt.Api.Models;
 using System;
 using System.Collections.Generic;
@@ -29,9 +30,19 @@ public class TokenRequestHandler : IEndpointHandler
     private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
     private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
 
-    private static async Task<IResult> HandleAsync(IConfiguration configuration,
-        [FromBody] TokenRequestModel model)
+    private static async Task<IResult> HandleAsync(IConfiguration configuration, HttpContext httpContext)
     {
+        var model = new TokenRequestModel
+        {
+            GrantType = httpContext.Request.Form["grant_type"],
+            UserName = httpContext.Request.Form["username"],
+            Password = httpContext.Request.Form["password"],
+            ClientId = httpContext.Request.Form["client_id"],
+            ClientSecret = httpContext.Request.Form["client_secret"],
+            RefreshToken = httpContext.Request.Form["refresh_token"],
+            Scope = httpContext.Request.Form["scope"],
+        };
+
         if (model != null)
         {
             model.UserName = model?.UserName?.ToLowerInvariant();
@@ -45,13 +56,12 @@ public class TokenRequestHandler : IEndpointHandler
             case "refresh_token":
                 return await RefreshTokenAsync(configuration, model);
 
-            //case "client_credentials":
-            //    return GrantClientCredentials(model);
+            case "client_credentials":
+                return await GrantClientCredentialsAsync(configuration, model, httpContext);
 
             default:
                 return Results.BadRequest(new TokenResponseModel { Error = "unsupported_grant_type" });
         }
-
 
     }
 
@@ -90,6 +100,34 @@ public class TokenRequestHandler : IEndpointHandler
             RefreshToken = refreshToken,
             Expires = token.ValidTo
         });
+    }
+
+    private static async Task<IResult> GrantClientCredentialsAsync(IConfiguration configuration, TokenRequestModel model, HttpContext httpContext)
+    {
+        string? clientId;
+        string? clientSecret;
+        if (!httpContext.Request.TryGetBasicCredentials(out clientId, out clientSecret))
+        {
+            clientId = httpContext.Request.Form["client_id"];
+            clientSecret = httpContext.Request.Form["client_secret"];
+        }
+
+        var authClaims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+            new Claim("grant_type", "client_credentials"),
+            new Claim("client_id", clientId),
+        };
+
+        var token = CreateToken(configuration, authClaims, DateTime.Now.AddMinutes(int.Parse(configuration["Auth:AccessTokenLifetime:ClientCredentials"])));
+
+        return Results.Ok(new TokenResponseModel
+        {
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+            Expires = token.ValidTo
+        });
+
     }
 
     private static async Task<IResult> RefreshTokenAsync(IConfiguration configuration, [FromBody] TokenRequestModel model)
@@ -179,7 +217,7 @@ public class TokenRequestHandler : IEndpointHandler
             return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Auth:Jwt:SigningSymmetricKey"]));
         }
 
-        return new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
+        return new X509SecurityKey(X509CertificateLoader.LoadPkcs12FromFile(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"], X509KeyStorageFlags.EphemeralKeySet));
     }
 
     private static SigningCredentials GetSigningCredentials(IConfiguration configuration)
@@ -191,7 +229,7 @@ public class TokenRequestHandler : IEndpointHandler
         }
         else
         {
-            var securityKey = new X509SecurityKey(new X509Certificate2(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"]));
+            var securityKey = new X509SecurityKey(X509CertificateLoader.LoadPkcs12FromFile(configuration["Auth:Jwt:SigningCertificate:Path"], configuration["Auth:Jwt:SigningCertificate:Password"], X509KeyStorageFlags.EphemeralKeySet));
             return new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
         }
     }

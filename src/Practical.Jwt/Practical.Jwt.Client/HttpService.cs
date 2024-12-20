@@ -1,9 +1,11 @@
 ﻿using Practical.Jwt.Client.Extensions;
 using Practical.Jwt.Client.Models;
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 
 namespace Practical.Jwt.Client;
 
@@ -16,16 +18,41 @@ public class HttpService
         _httpClient = httpClient;
     }
 
-    public async Task<Dictionary<string, string>> GetToken(string tokenEndpoint, TokenRequestModel request)
+    public async Task<Dictionary<string, string>> GetTokenAsync(string tokenEndpoint, TokenRequestModel request)
     {
-        var tokenResponse = await PostAsync<Dictionary<string, string>>(tokenEndpoint, request);
+        var tokenResponse = await RequestTokenAsync<Dictionary<string, string>>(tokenEndpoint, request);
         return tokenResponse;
     }
 
-    public async Task<Dictionary<string, string>> RefreshToken(string tokenEndpoint, TokenRequestModel request)
+    public async Task<Dictionary<string, string>> RefreshTokenAsync(string tokenEndpoint, TokenRequestModel request)
     {
-        var tokenResponse = await PostAsync<Dictionary<string, string>>(tokenEndpoint, request);
+        var tokenResponse = await RequestTokenAsync<Dictionary<string, string>>(tokenEndpoint, request);
         return tokenResponse;
+    }
+
+    public async Task<T> RequestTokenAsync<T>(string tokenEndpoint, TokenRequestModel tokenRequest)
+    {
+        if (tokenRequest.GrantType == "client_credentials")
+        {
+            _httpClient.UseBasicAuthentication(tokenRequest.ClientId, tokenRequest.ClientSecret);
+        }
+
+        using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
+        request.Content = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("grant_type", tokenRequest.GrantType),
+            new KeyValuePair<string, string>("username", tokenRequest.UserName),
+            new KeyValuePair<string, string>("password", tokenRequest.Password),
+            new KeyValuePair<string, string>("client_id", tokenRequest.ClientId),
+            new KeyValuePair<string, string>("client_secret", tokenRequest.ClientSecret),
+            new KeyValuePair<string, string>("refresh_token", tokenRequest.RefreshToken),
+            new KeyValuePair<string, string>("scope", tokenRequest.Scope)
+        });
+
+        using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead);
+        response.EnsureSuccessStatusCode();
+        var createdObject = await response.Content.ReadAs<T>();
+        return createdObject;
     }
 
     protected Task SetBearerToken(string accessToken)

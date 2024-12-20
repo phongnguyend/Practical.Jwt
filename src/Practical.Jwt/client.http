@@ -1,17 +1,24 @@
-POST https://localhost:44352/connect/token HTTP/1.1
-content-type: application/json
 
-{
-    "grant_type": "password",
-    "username": "test@abc.com"
-}
+POST https://localhost:44352/connect/token HTTP/1.1
+content-type: application/x-www-form-urlencoded
+
+grant_type=password&username=test@abc.com&password=xxx
 
 ###
 
 POST https://localhost:44352/connect/token HTTP/1.1
-content-type: application/json
+content-type: application/x-www-form-urlencoded
 
-{
-    "grant_type": "refresh_token",
-    "refresh_token": "39A9ACCB3E7AE79584581126541C513775D12C0CC51B4E252CCDA44841FA2BC3.5774290F55EAAAA988E8546C6C7FDE65F1D7E8C359E7542ED1D57B98A4A9EDF6"
-}
+grant_type=refresh_token&refresh_token=8E48C14650D0830B08F5C9AABF645565EF0276E7A8F9E33928D8FD83728D079BD2385FA89207DE6C76AE6E7C65C7DFB9A66141BBD611E1E5859E1D260C6C601C
+
+###
+
+POST https://localhost:44352/connect/token HTTP/1.1
+content-type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id=myclientid@abc.com&client_secret=myclientsecret
+
+###
+
+GET https://localhost:44352/api/users HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4MTExMTY2MC1jNzNiLTQxOWYtOTIwZi02YjJjZDM4ZDQwOWQiLCJpYXQiOiIxNzM0NjY2ODE0IiwiZ3JhbnRfdHlwZSI6ImNsaWVudF9jcmVkZW50aWFscyIsImNsaWVudF9pZCI6Im15Y2xpZW50aWRAYWJjLmNvbSIsImV4cCI6MTczNDY3MDQxNCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzNTIiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo0NDM1MiJ9.NzWrWMdQgxTiQ-mN9q20OWYFdIXYUdrCrAvZSoB8Ljc

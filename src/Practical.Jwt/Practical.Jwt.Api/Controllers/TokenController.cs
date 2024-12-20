@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Practical.Jwt.Api.Entities;
+using Practical.Jwt.Api.Extensions;
 using Practical.Jwt.Api.Models;
 using System;
 using System.Collections.Generic;
@@ -32,8 +33,19 @@ public class TokenController : Controller
 
     [AllowAnonymous]
     [HttpPost]
-    public async Task<IActionResult> RequestToken([FromBody] TokenRequestModel model)
+    public async Task<IActionResult> RequestToken()
     {
+        var model = new TokenRequestModel
+        {
+            GrantType = Request.Form["grant_type"],
+            UserName = Request.Form["username"],
+            Password = Request.Form["password"],
+            ClientId = Request.Form["client_id"],
+            ClientSecret = Request.Form["client_secret"],
+            RefreshToken = Request.Form["refresh_token"],
+            Scope = Request.Form["scope"],
+        };
+
         if (model != null)
         {
             model.UserName = model?.UserName?.ToLowerInvariant();
@@ -47,8 +59,8 @@ public class TokenController : Controller
             case "refresh_token":
                 return await RefreshTokenAsync(model);
 
-            //case "client_credentials":
-            //    return GrantClientCredentials(model);
+            case "client_credentials":
+                return await GrantClientCredentialsAsync(model);
 
             default:
                 return BadRequest(new TokenResponseModel { Error = "unsupported_grant_type" });
@@ -92,6 +104,34 @@ public class TokenController : Controller
             RefreshToken = refreshToken,
             Expires = token.ValidTo
         });
+    }
+
+    private async Task<IActionResult> GrantClientCredentialsAsync(TokenRequestModel model)
+    {
+        string? clientId;
+        string? clientSecret;
+        if (!Request.TryGetBasicCredentials(out clientId, out clientSecret))
+        {
+            clientId = Request.Form["client_id"];
+            clientSecret = Request.Form["client_secret"];
+        }
+
+        var authClaims = new List<Claim>
+        {
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString()),
+            new Claim("grant_type", "client_credentials"),
+            new Claim("client_id", clientId),
+        };
+
+        var token = CreateToken(authClaims, DateTime.Now.AddMinutes(int.Parse(_configuration["Auth:AccessTokenLifetime:ClientCredentials"])));
+
+        return Ok(new TokenResponseModel
+        {
+            AccessToken = new JwtSecurityTokenHandler().WriteToken(token),
+            Expires = token.ValidTo
+        });
+
     }
 
     private async Task<IActionResult> RefreshTokenAsync([FromBody] TokenRequestModel model)
@@ -181,7 +221,7 @@ public class TokenController : Controller
             return new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Auth:Jwt:SigningSymmetricKey"]));
         }
 
-        return new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+        return new X509SecurityKey(X509CertificateLoader.LoadPkcs12FromFile(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"], X509KeyStorageFlags.EphemeralKeySet));
     }
 
     private SigningCredentials GetSigningCredentials()
@@ -193,7 +233,7 @@ public class TokenController : Controller
         }
         else
         {
-            var securityKey = new X509SecurityKey(new X509Certificate2(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"]));
+            var securityKey = new X509SecurityKey(X509CertificateLoader.LoadPkcs12FromFile(_configuration["Auth:Jwt:SigningCertificate:Path"], _configuration["Auth:Jwt:SigningCertificate:Password"], X509KeyStorageFlags.EphemeralKeySet));
             return new SigningCredentials(securityKey, SecurityAlgorithms.RsaSha256);
         }
     }
