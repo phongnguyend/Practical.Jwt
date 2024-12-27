@@ -1,6 +1,4 @@
-﻿using System.Text.Json.Serialization;
-
-namespace Practical.Jwt.Client.Models;
+﻿namespace Practical.Jwt.Client.Models;
 
 public class TokenRequestModel
 {
