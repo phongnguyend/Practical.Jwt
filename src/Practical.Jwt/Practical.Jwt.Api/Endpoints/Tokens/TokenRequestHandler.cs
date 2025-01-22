@@ -149,8 +149,6 @@ public class TokenRequestHandler : IEndpointHandler
             }
             else if (_refreshTokens[refreshTokenHash].Expiration < DateTimeOffset.Now)
             {
-                _refreshTokens.Remove(refreshTokenHash);
-
                 return Results.BadRequest();
             }
 

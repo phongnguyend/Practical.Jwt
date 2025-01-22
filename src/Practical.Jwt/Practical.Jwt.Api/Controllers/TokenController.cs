@@ -153,8 +153,6 @@ public class TokenController : Controller
             }
             else if (_refreshTokens[refreshTokenHash].Expiration < DateTimeOffset.Now)
             {
-                _refreshTokens.Remove(refreshTokenHash);
-
                 return BadRequest();
             }
 
