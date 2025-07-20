@@ -11,6 +11,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
+using TrimItEasy;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,10 +25,19 @@ if (useMinimalApi)
 {
     services.AddAuthorization();
     services.AddCors();
+
+    services.Configure<Microsoft.AspNetCore.Http.Json.JsonOptions>(options =>
+    {
+        options.SerializerOptions.Converters.Add(new TrimmingStringJsonConverter());
+    });
 }
 else
 {
     services.AddControllers();
+    services.Configure<Microsoft.AspNetCore.Mvc.JsonOptions>(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new TrimmingStringJsonConverter());
+    });
 }
 
 services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
