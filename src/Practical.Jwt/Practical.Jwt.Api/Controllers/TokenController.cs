@@ -7,6 +7,7 @@ using Practical.Jwt.Api.Entities;
 using Practical.Jwt.Api.Extensions;
 using Practical.Jwt.Api.Models;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -23,7 +24,7 @@ namespace Practical.Jwt.Api.Controllers;
 public class TokenController : Controller
 {
     private static readonly SemaphoreSlim _lock = new SemaphoreSlim(1);
-    private static readonly Dictionary<string, RefreshToken> _refreshTokens = new Dictionary<string, RefreshToken>();
+    private static readonly ConcurrentDictionary<string, RefreshToken> _refreshTokens = new ConcurrentDictionary<string, RefreshToken>();
     private readonly IConfiguration _configuration;
 
     public TokenController(IConfiguration configuration)
@@ -84,19 +85,11 @@ public class TokenController : Controller
         var refreshToken = Convert.ToHexString(refreshTokenBytes);
         var refreshTokenHash = Convert.ToHexString(refreshTokenBytes.UseSha256().ComputeHash());
 
-        await _lock.WaitAsync();
-        try
+        _refreshTokens.TryAdd(refreshTokenHash, new RefreshToken
         {
-            _refreshTokens.Add(refreshTokenHash, new RefreshToken
-            {
-                UserName = model.UserName,
-                Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
-            });
-        }
-        finally
-        {
-            _lock.Release();
-        }
+            UserName = model.UserName,
+            Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
+        });
 
         return Ok(new TokenResponseModel
         {
@@ -142,21 +135,21 @@ public class TokenController : Controller
             var refreshTokenBytes = Convert.FromHexString(model.RefreshToken);
             var refreshTokenHash = Convert.ToHexString(refreshTokenBytes.UseSha256().ComputeHash());
 
-            if (!_refreshTokens.ContainsKey(refreshTokenHash))
+            if (!_refreshTokens.TryGetValue(refreshTokenHash, out var refreshToken))
             {
                 return BadRequest();
             }
-            else if (_refreshTokens[refreshTokenHash].ConsumedTime != null)
+            else if (refreshToken.ConsumedTime != null)
             {
                 // TODO: logout and inform user
                 return BadRequest();
             }
-            else if (_refreshTokens[refreshTokenHash].Expiration < DateTimeOffset.Now)
+            else if (refreshToken.Expiration < DateTimeOffset.Now)
             {
                 return BadRequest();
             }
 
-            var userName = _refreshTokens[refreshTokenHash].UserName;
+            var userName = refreshToken.UserName;
 
             var authClaims = new List<Claim>
             {
@@ -171,9 +164,9 @@ public class TokenController : Controller
             var newRefreshToken = Convert.ToHexString(newRefreshTokenBytes);
             var newRefreshTokenHash = Convert.ToHexString(newRefreshTokenBytes.UseSha256().ComputeHash());
 
-            _refreshTokens[refreshTokenHash].ConsumedTime = DateTimeOffset.UtcNow;
+            refreshToken.ConsumedTime = DateTimeOffset.UtcNow;
 
-            _refreshTokens.Add(newRefreshTokenHash, new RefreshToken
+            _refreshTokens.TryAdd(newRefreshTokenHash, new RefreshToken
             {
                 UserName = userName,
                 Expiration = DateTimeOffset.UtcNow.AddMinutes(int.Parse(_configuration["Auth:RefreshTokenLifetime:ResourceOwnerCredentials"])),
