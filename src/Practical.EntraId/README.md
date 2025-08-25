@@ -1,0 +1,6 @@
+- https://medium.com/medialesson/allow-client-credentials-flow-in-asp-net-microsoft-identity-web-0e12f9de5929
+- https://www.ryanjames.dev/blog/2022/11/17/securing-asp-dotnet-web-api-access-control-list-single-client/
+- https://stackoverflow.com/questions/68711323/how-to-authenticate-protect-a-backend-web-api-for-server-to-server-communication
+- https://github.com/AzureAD/microsoft-identity-web/wiki/web-apis#user-content-web-apis-called-by-daemon-apps-using-client-credential-flow
+- https://stackoverflow.com/questions/64193349/idw10201-neither-scope-or-roles-claim-was-found-in-the-bearer-token
+- https://learn.microsoft.com/en-us/answers/questions/1336925/why-i-cannot-find-my-api-in-the-list-of-apis-in-my
