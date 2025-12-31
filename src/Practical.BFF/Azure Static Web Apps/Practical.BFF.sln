@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36705.20
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ReverseProxy.Yarp", "ReverseProxy.Yarp\ReverseProxy.Yarp.csproj", "{E113005D-077E-49F8-8E92-177B8B72EFEB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BackendApi", "BackendApi\BackendApi.csproj", "{1CAD2C3D-76F1-442E-BFC6-5E50B3EC43BB}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E113005D-077E-49F8-8E92-177B8B72EFEB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E113005D-077E-49F8-8E92-177B8B72EFEB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E113005D-077E-49F8-8E92-177B8B72EFEB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E113005D-077E-49F8-8E92-177B8B72EFEB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1CAD2C3D-76F1-442E-BFC6-5E50B3EC43BB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CAD2C3D-76F1-442E-BFC6-5E50B3EC43BB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CAD2C3D-76F1-442E-BFC6-5E50B3EC43BB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CAD2C3D-76F1-442E-BFC6-5E50B3EC43BB}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {407A39EC-97A7-45B0-9FCA-02A70467706B}
+	EndGlobalSection
+EndGlobal

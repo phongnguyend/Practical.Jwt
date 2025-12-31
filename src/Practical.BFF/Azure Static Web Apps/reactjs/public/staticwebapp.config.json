@@ -1,0 +1,23 @@
+{
+    "navigationFallback": {
+        "rewrite": "/index.html"
+    },
+    "routes": [
+        {
+            "route": "/login",
+            "rewrite": "/api/login"
+        },
+        {
+            "route": "/logout",
+            "rewrite": "/api/logout"
+        },
+        {
+            "route": "/userinfor",
+            "rewrite": "/api/userinfor"
+        },
+        {
+            "route": "/signin-oidc",
+            "rewrite": "/api/signin-oidc"
+        }
+    ]
+}
