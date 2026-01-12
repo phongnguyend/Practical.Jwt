@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using BackendApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var services = builder.Services;
@@ -11,6 +12,9 @@ services.AddAuthentication(options =>
 {
     builder.Configuration.GetSection("JwtBearer").Bind(options);
 });
+
+// Register OneSignal service
+services.AddSingleton<IOneSignalService, OneSignalService>();
 
 services.AddControllers(configure =>
 {

@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+    <PackageReference Include="OneSignalApi" Version="2.3.0" />
   </ItemGroup>
 
 </Project>

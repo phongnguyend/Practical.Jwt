@@ -30,5 +30,14 @@
         y.parentNode.insertBefore(t, y);
       })(window, document, "clarity", "script", "uz2upsj7rr");
     </script>
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function (OneSignal) {
+        await OneSignal.init({
+          appId: "6d6f9e39-5819-45f1-ba81-5fc4f1b68dc9",
+        });
+      });
+    </script>
   </body>
 </html>
