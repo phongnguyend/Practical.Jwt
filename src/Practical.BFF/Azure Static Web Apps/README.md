@@ -9,3 +9,11 @@
 ### Microsoft Entra External ID
 - [Add Google as an identity provider - Microsoft Entra External ID | Microsoft Learn](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-google-federation-customers)
 - [Add Facebook for customer sign-in - Microsoft Entra External ID | Microsoft Learn](https://learn.microsoft.com/en-us/entra/external-id/customers/how-to-facebook-federation-customers)
+
+### OneSignal
+- [Web SDK setup - OneSignal](https://documentation.onesignal.com/docs/en/web-sdk-setup)
+- [Users - OneSignal](https://documentation.onesignal.com/docs/en/users)
+- [All Apps | OneSignal](https://dashboard.onesignal.com/apps)
+- [OneSignal/onesignal-dotnet-api](https://github.com/OneSignal/onesignal-dotnet-api)
+  + [[question]: How to set ExtenralIds if IncludeExternalUserIds is deprecated for push notifications · Issue #80 · OneSignal/OneSignal-DotNet-SDK](https://github.com/OneSignal/OneSignal-DotNet-SDK/issues/80)
+  + [[question]: Aliases, IncludeExternalUserIds as deprecated. · Issue #34 · OneSignal/onesignal-dotnet-api](https://github.com/OneSignal/onesignal-dotnet-api/issues/34)
