@@ -17,3 +17,9 @@
 - [OneSignal/onesignal-dotnet-api](https://github.com/OneSignal/onesignal-dotnet-api)
   + [[question]: How to set ExtenralIds if IncludeExternalUserIds is deprecated for push notifications · Issue #80 · OneSignal/OneSignal-DotNet-SDK](https://github.com/OneSignal/OneSignal-DotNet-SDK/issues/80)
   + [[question]: Aliases, IncludeExternalUserIds as deprecated. · Issue #34 · OneSignal/onesignal-dotnet-api](https://github.com/OneSignal/onesignal-dotnet-api/issues/34)
+
+### Cookiebot
+- [Cookiebot Set Up Guide - How to Install Cookiebot CMP](https://www.cookiebot.com/en/manual-implementation/)
+
+### MS Clarity
+- [Microsoft Clarity - Free Heatmaps & Session Recordings](https://clarity.microsoft.com/)
