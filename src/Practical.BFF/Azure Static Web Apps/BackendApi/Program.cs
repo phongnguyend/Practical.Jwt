@@ -16,6 +16,12 @@ services.AddAuthentication(options =>
 // Register OneSignal service
 services.AddSingleton<IOneSignalService, OneSignalService>();
 
+// Register Azure Notification Hub service
+services.AddSingleton<IAzureNotificationHubService, AzureNotificationHubService>();
+
+// Register Firebase Cloud Messaging service
+services.AddSingleton<IFirebaseService, FirebaseService>();
+
 services.AddControllers(configure =>
 {
 })
