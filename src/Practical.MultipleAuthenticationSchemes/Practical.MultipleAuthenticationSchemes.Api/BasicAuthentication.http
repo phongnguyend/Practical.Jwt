@@ -1,0 +1,40 @@
+### Test Basic Authentication
+
+@hostname = https://localhost:7142
+
+### Test public endpoint (no auth required)
+GET {{hostname}}/api/secure/public
+
+### Test endpoint that accepts both JWT and Basic auth - Using Basic Auth
+GET {{hostname}}/api/secure/both
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### Test endpoint that accepts both JWT and Basic auth - Using Basic Auth (user credentials)
+GET {{hostname}}/api/secure/both
+Authorization: Basic dXNlcjp1c2VyMTIz
+
+### Test Basic-only endpoint
+GET {{hostname}}/api/secure/basic
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### Test Basic-only endpoint with user credentials
+GET {{hostname}}/api/secure/basic
+Authorization: Basic dXNlcjp1c2VyMTIz
+
+### Test JWT-only endpoint with Basic Auth (should fail)
+GET {{hostname}}/api/secure/jwt
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### Test with invalid credentials (should fail)
+GET {{hostname}}/api/secure/basic
+Authorization: Basic aW52YWxpZDppbnZhbGlk
+
+### WeatherForecast with Basic Authentication
+GET {{hostname}}/weatherforecast
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+###
+# Note: Credentials encoded in Base64:
+# YWRtaW46cGFzc3dvcmQxMjM= = admin:password123
+# dXNlcjp1c2VyMTIz = user:user123
+# aW52YWxpZDppbnZhbGlk = invalid:invalid

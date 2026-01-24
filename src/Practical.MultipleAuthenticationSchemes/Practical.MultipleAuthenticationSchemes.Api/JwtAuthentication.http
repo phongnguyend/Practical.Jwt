@@ -1,0 +1,29 @@
+@hostname = https://localhost:7142
+
+
+POST {{hostname}}/connect/token HTTP/1.1
+content-type: application/x-www-form-urlencoded
+
+grant_type=password&username=test@abc.com&password=xxx
+
+###
+
+POST {{hostname}}/connect/token HTTP/1.1
+content-type: application/x-www-form-urlencoded
+
+grant_type=refresh_token&refresh_token=8E48C14650D0830B08F5C9AABF645565EF0276E7A8F9E33928D8FD83728D079BD2385FA89207DE6C76AE6E7C65C7DFB9A66141BBD611E1E5859E1D260C6C601C
+
+###
+
+POST {{hostname}}/connect/token HTTP/1.1
+content-type: application/x-www-form-urlencoded
+
+grant_type=client_credentials&client_id=myclientid@abc.com&client_secret=myclientsecret
+
+###
+
+GET {{hostname}}/weatherforecast/
+Accept: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiI4MTExMTY2MC1jNzNiLTQxOWYtOTIwZi02YjJjZDM4ZDQwOWQiLCJpYXQiOiIxNzM0NjY2ODE0IiwiZ3JhbnRfdHlwZSI6ImNsaWVudF9jcmVkZW50aWFscyIsImNsaWVudF9pZCI6Im15Y2xpZW50aWRAYWJjLmNvbSIsImV4cCI6MTczNDY3MDQxNCwiaXNzIjoiaHR0cHM6Ly9sb2NhbGhvc3Q6NDQzNTIiLCJhdWQiOiJodHRwczovL2xvY2FsaG9zdDo0NDM1MiJ9.NzWrWMdQgxTiQ-mN9q20OWYFdIXYUdrCrAvZSoB8Ljc
+
+###

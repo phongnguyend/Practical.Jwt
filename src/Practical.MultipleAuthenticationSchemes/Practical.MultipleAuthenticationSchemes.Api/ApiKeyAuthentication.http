@@ -1,0 +1,78 @@
+### Test API Key Authentication
+
+@hostname = https://localhost:7142
+
+### Test public endpoint (no auth required)
+GET {{hostname}}/api/secure/public
+
+### Test endpoint that accepts all auth schemes - Using API Key (Admin)
+GET {{hostname}}/api/secure/all
+X-API-Key: dev-api-key-12345
+
+### Test endpoint that accepts all auth schemes - Using API Key (User)
+GET {{hostname}}/api/secure/all
+X-API-Key: prod-api-key-67890
+
+### Test endpoint that accepts all auth schemes - Using API Key (Read-Only)
+GET {{hostname}}/api/secure/all
+X-API-Key: readonly-api-key-11111
+
+### Test API Key-only endpoint with Admin Key
+GET {{hostname}}/api/secure/apikey
+X-API-Key: dev-api-key-12345
+
+### Test API Key-only endpoint with User Key
+GET {{hostname}}/api/secure/apikey
+X-API-Key: prod-api-key-67890
+
+### Test API Key-only endpoint with Read-Only Key
+GET {{hostname}}/api/secure/apikey
+X-API-Key: readonly-api-key-11111
+
+### Test JWT or API Key endpoint with API Key
+GET {{hostname}}/api/secure/jwt-or-apikey
+X-API-Key: dev-api-key-12345
+
+### Test JWT-only endpoint with API Key (should fail)
+GET {{hostname}}/api/secure/jwt
+X-API-Key: dev-api-key-12345
+
+### Test with expired API Key (should fail)
+GET {{hostname}}/api/secure/apikey
+X-API-Key: expired-api-key-99999
+
+### Test with invalid API Key (should fail)
+GET {{hostname}}/api/secure/apikey
+X-API-Key: invalid-api-key
+
+### Test without API Key header (should fail)
+GET {{hostname}}/api/secure/apikey
+
+### WeatherForecast with API Key Authentication
+GET {{hostname}}/weatherforecast
+X-API-Key: dev-api-key-12345
+
+###
+# Available API Keys for testing:
+# 
+# 1. dev-api-key-12345 (Admin)
+#    Owner: admin (ID: 1)
+#    Scopes: read, write, admin
+#    Roles: Administrator
+#    Status: Active, expires in 1 year
+#
+# 2. prod-api-key-67890 (User)
+#    Owner: user (ID: 2)
+#    Scopes: read, write
+#    Roles: User
+#    Status: Active, expires in 6 months
+#
+# 3. readonly-api-key-11111 (Read-Only)
+#    Owner: readonly (ID: 3)
+#    Scopes: read
+#    Roles: Reader
+#    Status: Active, expires in 3 months
+#
+# 4. expired-api-key-99999 (Expired)
+#    Owner: admin (ID: 1)
+#    Status: Inactive/Expired

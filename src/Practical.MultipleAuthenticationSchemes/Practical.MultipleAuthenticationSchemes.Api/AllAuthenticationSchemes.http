@@ -1,0 +1,108 @@
+### Test All Authentication Schemes
+
+@hostname = https://localhost:7142
+
+### ========================================
+### PUBLIC ENDPOINT (No Authentication)
+### ========================================
+
+GET {{hostname}}/api/secure/public
+
+### ========================================
+### ALL SCHEMES ENDPOINT
+### ========================================
+
+### Using Basic Authentication
+GET {{hostname}}/api/secure/all
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### Using API Key Authentication
+GET {{hostname}}/api/secure/all
+X-API-Key: dev-api-key-12345
+
+### Using JWT Bearer Authentication (get token first from /connect/token)
+# POST {{hostname}}/connect/token
+# Content-Type: application/x-www-form-urlencoded
+# 
+# grant_type=password&username=admin&password=password123
+
+### ========================================
+### BASIC AUTHENTICATION ONLY
+### ========================================
+
+### Valid Basic Auth
+GET {{hostname}}/api/secure/basic
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### Invalid - Using API Key (should fail)
+GET {{hostname}}/api/secure/basic
+X-API-Key: dev-api-key-12345
+
+### ========================================
+### API KEY AUTHENTICATION ONLY
+### ========================================
+
+### Valid API Key
+GET {{hostname}}/api/secure/apikey
+X-API-Key: dev-api-key-12345
+
+### Invalid - Using Basic Auth (should fail)
+GET {{hostname}}/api/secure/apikey
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### ========================================
+### JWT OR API KEY AUTHENTICATION
+### ========================================
+
+### Using API Key
+GET {{hostname}}/api/secure/jwt-or-apikey
+X-API-Key: prod-api-key-67890
+
+### Using Basic Auth (should fail)
+GET {{hostname}}/api/secure/jwt-or-apikey
+Authorization: Basic dXNlcjp1c2VyMTIz
+
+### ========================================
+### WEATHERFORECAST ENDPOINT (All Schemes)
+### ========================================
+
+### Using Basic Authentication
+GET {{hostname}}/weatherforecast
+Authorization: Basic YWRtaW46cGFzc3dvcmQxMjM=
+
+### Using API Key Authentication
+GET {{hostname}}/weatherforecast
+X-API-Key: readonly-api-key-11111
+
+###
+# ========================================
+# AUTHENTICATION SCHEMES SUMMARY
+# ========================================
+#
+# 1. JWT Bearer (default scheme)
+#    - Get token from /connect/token
+#    - Use: Authorization: Bearer {token}
+#
+# 2. Basic Authentication
+#    - Use: Authorization: Basic {base64(username:password)}
+#    - Test credentials:
+#      * admin:password123 (YWRtaW46cGFzc3dvcmQxMjM=)
+#      * user:user123 (dXNlcjp1c2VyMTIz)
+#
+# 3. API Key Authentication
+#    - Use: X-API-Key: {api-key}
+#    - Test keys:
+#      * dev-api-key-12345 (Admin - all scopes)
+#      * prod-api-key-67890 (User - read/write)
+#      * readonly-api-key-11111 (Reader - read only)
+#
+# ========================================
+# AUTHORIZATION POLICIES
+# ========================================
+#
+# - DefaultPolicy: JWT + Basic + API Key
+# - JwtOnly: JWT Bearer only
+# - BasicOnly: Basic Auth only
+# - ApiKeyOnly: API Key only
+# - JwtOrApiKey: JWT Bearer or API Key
+# ========================================

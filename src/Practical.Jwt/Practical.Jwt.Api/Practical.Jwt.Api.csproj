@@ -7,7 +7,6 @@
   <ItemGroup>
     <PackageReference Include="CryptographyHelper" Version="3.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.15.0" />
     <PackageReference Include="TrimItEasy" Version="1.0.0-preview.3" />
   </ItemGroup>
 
